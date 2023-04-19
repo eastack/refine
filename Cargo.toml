@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 arboard = { version="3.2.0", default-features=false }
+notify-rust = "4.8"
 
 [profile.release]
 strip = true  # Automatically strip symbols from the binary.

@@ -1,6 +1,7 @@
 use arboard::Clipboard;
 #[cfg(target_os = "linux")]
 use arboard::SetExtLinux;
+use notify_rust::Notification;
 use std::{env, error::Error, process};
 
 // An argument that can be passed into the program to signal that it should daemonize itself. This
@@ -9,8 +10,8 @@ const DAEMONIZE_ARG: &str = "__internal_daemonize";
 
 fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     let mut clipboard = Clipboard::new().unwrap();
-    let content = clipboard.get_text()?;
-    let content = content
+    let comment = clipboard.get_text()?;
+    let comment = comment
         .lines()
         .map(|str| str.trim())
         .map(clean_comment_flag)
@@ -21,7 +22,7 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 
     #[cfg(target_os = "linux")]
     if env::args().nth(1).as_deref() == Some(DAEMONIZE_ARG) {
-        clipboard.set().wait().text(content)?;
+        clipboard.set().wait().text(comment)?;
         return Ok(());
     }
 
@@ -34,8 +35,10 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
             .current_dir("/")
             .spawn()?;
     } else {
-        Clipboard::new()?.set_text("Hello, world!")?;
+        Clipboard::new()?.set_text(comment)?;
     }
+
+    Notification::new().summary("Comment refined").show()?;
 
     Ok(())
 }
