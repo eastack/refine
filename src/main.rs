@@ -2,7 +2,8 @@ use arboard::Clipboard;
 #[cfg(target_os = "linux")]
 use arboard::SetExtLinux;
 use notify_rust::Notification;
-use std::{env, error::Error, process};
+use regex::{Captures, Regex};
+use std::{borrow::Cow, env, error::Error, process};
 
 // An argument that can be passed into the program to signal that it should daemonize itself. This
 // can be anything as long as it is unlikely to be passed in by the user by mistake.
@@ -10,15 +11,17 @@ const DAEMONIZE_ARG: &str = "__internal_daemonize";
 
 fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     let mut clipboard = Clipboard::new().unwrap();
+
     let comment = clipboard.get_text()?;
+    let comment = remove_hyphen(&comment);
+
     let comment = comment
         .lines()
         .map(|str| str.trim())
         .map(clean_comment_flag)
         .map(|str| str.trim())
         .filter(|str| !str.is_empty())
-        .collect::<Vec<_>>()
-        .join(" ");
+        .fold(String::new(), |cmt, line| cmt + line);
 
     #[cfg(target_os = "linux")]
     if env::args().nth(1).as_deref() == Some(DAEMONIZE_ARG) {
@@ -57,4 +60,11 @@ fn clean_comment_flag(str: &str) -> &str {
     }
 
     str
+}
+
+fn remove_hyphen(comment: &str) -> Cow<str> {
+    let hyphen = Regex::new(r"([a-z])-\n([a-z])").unwrap();
+    hyphen.replace_all(comment, |caps: &Captures| {
+        format!("{}{}", &caps[1], &caps[2])
+    })
 }
